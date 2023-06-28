@@ -245,7 +245,6 @@ def evolutionary_algorithm(matrix, data, free, filled, groups_empty_space, teach
         print('Number of iterations: {} \nCost: {} \nTeachers cost: {} | Groups cost: {} | Classrooms cost:'
               ' {}'.format(t, loss_after, cost_teachers, cost_groups, cost_classrooms))
 
-
 def simulated_hardening(matrix, data, free, filled, groups_empty_space, teachers_empty_space, subjects_order, file):
     """
     Algorithm that uses simulated hardening with geometric decrease of temperature to optimize timetable by satisfying
@@ -257,30 +256,27 @@ def simulated_hardening(matrix, data, free, filled, groups_empty_space, teachers
     t = 0.5
     _, _, curr_cost_group = empty_space_groups_cost(groups_empty_space)
     _, _, curr_cost_teachers = empty_space_teachers_cost(teachers_empty_space)
-    curr_cost = curr_cost_group  # + curr_cost_teachers
+    curr_cost = curr_cost_group + curr_cost_teachers
     if free_hour(matrix) == -1:
         curr_cost += 1
 
     for i in range(iter_count):
         rt = random.uniform(0, 1)
-        t *= 0.99                   # geometric decrease of temperature
+        t *= 0.99  # geometric decrease of temperature
 
         # save current results
-        old_matrix = copy.deepcopy(matrix)
-        old_free = copy.deepcopy(free)
-        old_filled = copy.deepcopy(filled)
-        old_groups_empty_space = copy.deepcopy(groups_empty_space)
-        old_teachers_empty_space = copy.deepcopy(teachers_empty_space)
-        old_subjects_order = copy.deepcopy(subjects_order)
+        old_state = (copy.deepcopy(matrix), copy.deepcopy(free), copy.deepcopy(filled),
+                     copy.deepcopy(groups_empty_space), copy.deepcopy(teachers_empty_space),
+                     copy.deepcopy(subjects_order))
 
         # try to mutate 1/4 of all classes
-        for j in range(len(data.classes) // 4):
+        for _ in range(len(data.classes) // 4):
             index_class = random.randrange(len(data.classes))
             mutate_ideal_spot(matrix, data, index_class, free, filled, groups_empty_space, teachers_empty_space,
                               subjects_order)
         _, _, new_cost_groups = empty_space_groups_cost(groups_empty_space)
         _, _, new_cost_teachers = empty_space_teachers_cost(teachers_empty_space)
-        new_cost = new_cost_groups  # + new_cost_teachers
+        new_cost = new_cost_groups + new_cost_teachers
         if free_hour(matrix) == -1:
             new_cost += 1
 
@@ -289,12 +285,8 @@ def simulated_hardening(matrix, data, free, filled, groups_empty_space, teachers
             curr_cost = new_cost
         else:
             # return to previously saved data
-            matrix = copy.deepcopy(old_matrix)
-            free = copy.deepcopy(old_free)
-            filled = copy.deepcopy(old_filled)
-            groups_empty_space = copy.deepcopy(old_groups_empty_space)
-            teachers_empty_space = copy.deepcopy(old_teachers_empty_space)
-            subjects_order = copy.deepcopy(old_subjects_order)
+            matrix, free, filled, groups_empty_space, teachers_empty_space, subjects_order = old_state
+
         if i % 100 == 0:
             print('Iteration: {:4d} | Average cost: {:0.8f}'.format(i, curr_cost))
 
@@ -303,6 +295,64 @@ def simulated_hardening(matrix, data, free, filled, groups_empty_space, teachers
     print('STATISTICS AFTER HARDENING')
     show_statistics(matrix, data, subjects_order, groups_empty_space, teachers_empty_space)
     write_solution_to_file(matrix, data, filled, file, groups_empty_space, teachers_empty_space, subjects_order)
+
+# def simulated_hardening(matrix, data, free, filled, groups_empty_space, teachers_empty_space, subjects_order, file):
+#     """
+#     Algorithm that uses simulated hardening with geometric decrease of temperature to optimize timetable by satisfying
+#     soft constraints as much as possible (empty space for groups and existence of an hour in which there is no classes).
+#     """
+#     # number of iterations
+#     iter_count = 2500
+#     # temperature
+#     t = 0.5
+#     _, _, curr_cost_group = empty_space_groups_cost(groups_empty_space)
+#     _, _, curr_cost_teachers = empty_space_teachers_cost(teachers_empty_space)
+#     curr_cost = curr_cost_group  # + curr_cost_teachers
+#     if free_hour(matrix) == -1:
+#         curr_cost += 1
+
+#     for i in range(iter_count):
+#         rt = random.uniform(0, 1)
+#         t *= 0.99                   # geometric decrease of temperature
+
+#         # save current results
+#         old_matrix = copy.deepcopy(matrix)
+#         old_free = copy.deepcopy(free)
+#         old_filled = copy.deepcopy(filled)
+#         old_groups_empty_space = copy.deepcopy(groups_empty_space)
+#         old_teachers_empty_space = copy.deepcopy(teachers_empty_space)
+#         old_subjects_order = copy.deepcopy(subjects_order)
+
+#         # try to mutate 1/4 of all classes
+#         for j in range(len(data.classes) // 4):
+#             index_class = random.randrange(len(data.classes))
+#             mutate_ideal_spot(matrix, data, index_class, free, filled, groups_empty_space, teachers_empty_space,
+#                               subjects_order)
+#         _, _, new_cost_groups = empty_space_groups_cost(groups_empty_space)
+#         _, _, new_cost_teachers = empty_space_teachers_cost(teachers_empty_space)
+#         new_cost = new_cost_groups  # + new_cost_teachers
+#         if free_hour(matrix) == -1:
+#             new_cost += 1
+
+#         if new_cost < curr_cost or rt <= math.exp((curr_cost - new_cost) / t):
+#             # take new cost and continue with new data
+#             curr_cost = new_cost
+#         else:
+#             # return to previously saved data
+#             matrix = copy.deepcopy(old_matrix)
+#             free = copy.deepcopy(old_free)
+#             filled = copy.deepcopy(old_filled)
+#             groups_empty_space = copy.deepcopy(old_groups_empty_space)
+#             teachers_empty_space = copy.deepcopy(old_teachers_empty_space)
+#             subjects_order = copy.deepcopy(old_subjects_order)
+#         if i % 100 == 0:
+#             print('Iteration: {:4d} | Average cost: {:0.8f}'.format(i, curr_cost))
+
+#     print('TIMETABLE AFTER HARDENING')
+#     show_timetable(matrix)
+#     print('STATISTICS AFTER HARDENING')
+#     show_statistics(matrix, data, subjects_order, groups_empty_space, teachers_empty_space)
+#     write_solution_to_file(matrix, data, filled, file, groups_empty_space, teachers_empty_space, subjects_order)
 
 
 def main():
